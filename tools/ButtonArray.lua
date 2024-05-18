@@ -34,6 +34,8 @@ function ButtonArray:handleMousePress(mouseX, mouseY)
     for _, currButton in ipairs(self) do
         if currButton:checkMouseIn(mouseX, mouseY) then
             currButton:handleMousePress(mouseX, mouseY);
+            return currButton;
         end
     end
+    return nil;
 end
