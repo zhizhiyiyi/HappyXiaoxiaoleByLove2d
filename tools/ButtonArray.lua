@@ -2,11 +2,11 @@ require("tools/Array");
 require("tools/Button");
 
 ButtonArray = Array:new();
-ButtonArray.__index = ButtonArray;
 
 function ButtonArray:new()
     local ret = {};
     setmetatable(ret, self);
+    self.__index = self;
     return ret;
 end
 
@@ -30,10 +30,10 @@ function ButtonArray:updateActiveState(mouseX, mouseY)
     end
 end
 
-function ButtonArray:handleEvent(mouseX, mouseY)
+function ButtonArray:handleMousePress(mouseX, mouseY)
     for _, currButton in ipairs(self) do
         if currButton:checkMouseIn(mouseX, mouseY) then
-            currButton:handleEvent(mouseX, mouseY);
+            currButton:handleMousePress(mouseX, mouseY);
         end
     end
 end

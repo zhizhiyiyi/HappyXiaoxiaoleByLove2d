@@ -1,10 +1,10 @@
 
 Array = {};
-Array.__index = Array;
 
 function Array:new()
     local ret = {};
     setmetatable(ret, self);
+    self.__index = self;
     return ret;
 end
 

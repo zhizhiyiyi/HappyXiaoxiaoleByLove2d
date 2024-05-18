@@ -1,6 +1,5 @@
 
 Button = {};
-Button.__index = Button;
 
 function Button:new(x, y, width, height, str, backColor, outlineColor, activeColor, strColor)
     local ret = {
@@ -15,9 +14,10 @@ function Button:new(x, y, width, height, str, backColor, outlineColor, activeCol
         strColor = strColor,
         isActive = false,
         isEnable = true,
-        handleEvent = function () end,
+        handleMousePress = function () end,
     };
     setmetatable(ret, self);
+    self.__index = self;
     return ret;
 end
 
