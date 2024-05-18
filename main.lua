@@ -9,6 +9,10 @@ buttonOutlineColor = HexColor("#000000");
 buttonActiveColor = HexColor("#2fc1c5");
 buttonStrColor = HexColor("#000000");
 
+exitButtonEvent = function (x, y)
+    love.event.quit();
+end
+
 function love.load()
     love.graphics.setBackgroundColor(frameBackColor);
     local windowWidth, windowHeight = love.graphics.getDimensions();
@@ -18,6 +22,8 @@ function love.load()
         "New Game", buttonBackColor, buttonOutlineColor, buttonActiveColor, buttonStrColor);
     local exitButton = Button:new(windowWidth / 2 - buttonWidth / 2, windowHeight / 3 + buttonHeight + 30, buttonWidth, buttonHeight, 
         "Exit", buttonBackColor, buttonOutlineColor, buttonActiveColor, buttonStrColor);
+    exitButton.handleEvent = exitButtonEvent;
+
     buttonArray = ButtonArray:new();
     buttonArray:addButton(newGameButton);
     buttonArray:addButton(exitButton);
@@ -29,6 +35,10 @@ end
 
 function love.mousemoved(x, y)
     buttonArray:updateActiveState(x, y);
+end
+
+function love.mousepressed(x, y)
+    buttonArray:handleEvent(x, y);
 end
 
 function love.draw()

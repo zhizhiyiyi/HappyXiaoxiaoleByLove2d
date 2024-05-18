@@ -15,6 +15,7 @@ function Button:new(x, y, width, height, str, backColor, outlineColor, activeCol
         strColor = strColor,
         isActive = false,
         isEnable = true,
+        handleEvent = function () end,
     };
     setmetatable(ret, self);
     return ret;
