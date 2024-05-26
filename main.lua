@@ -2,6 +2,7 @@
 if arg[2] == "debug" then
     require("lldebugger").start()
 end
+
 require("tools/HexColor");
 require("tools/Button");
 require("tools/ButtonArray");
@@ -77,6 +78,7 @@ function createGameFrame(frameBackColor)
 end
 
 function love.load()
+    math.randomseed(os.time());
     love.graphics.setBackgroundColor(frameBackColor);
 
     -- 初始菜单界面
@@ -86,21 +88,34 @@ function love.load()
     -- 当前界面
     _G.currFrame = _G.menuFrame;
 
+    -- 用于防止按钮一直按下时事件一直更新
+    _G.isKeyBoardActive = false;
 end
 
 function love.update(dt)
     if _G.gameFrame.world ~= nil then
         _G.gameFrame.world:update(dt)
         
-        -- if love.keyboard.isDown("right") then
-        --     _G.gameFrame.objects.block.body:applyForce(4000, 0)
-        -- end
-        -- if love.keyboard.isDown("left") then
-        --     _G.gameFrame.objects.block.body:applyForce(-4000, 0)
-        -- end
-        -- if love.keyboard.isDown("up") then
-        --     _G.gameFrame.objects.block.body:applyForce(0, -4000)
-        -- end
+        if love.keyboard.isDown("right") then
+            if not _G.isKeyBoardActive then
+                local currIndex = _G.gameFrame.worldReadyBlockIndex;
+                _G.gameFrame.worldReadyBlockIndex = math.min(currIndex + 1, _G.gameFrame.worldXNum);
+            end
+            _G.isKeyBoardActive = true;
+        elseif love.keyboard.isDown("left") then
+            if not _G.isKeyBoardActive then
+                local currIndex = _G.gameFrame.worldReadyBlockIndex;
+                _G.gameFrame.worldReadyBlockIndex = math.max(currIndex - 1, 1);
+            end
+            _G.isKeyBoardActive = true;
+        elseif love.keyboard.isDown("space") then
+            if not _G.isKeyBoardActive then
+                _G.gameFrame:generateBlock();
+            end
+            _G.isKeyBoardActive = true;
+        else
+            _G.isKeyBoardActive = false;
+        end
     end
     
 end
