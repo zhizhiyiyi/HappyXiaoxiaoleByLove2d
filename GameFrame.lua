@@ -12,6 +12,15 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
         object = nil,
         worldBlocks = nil,
         worldBlocksMaxNum = 100,
+        worldBlockDefaultColor = {
+            HexColor("#FF0000"),
+            HexColor("#FFCC00"),
+            HexColor("#37C870"),
+            HexColor("#0066FF"),
+            HexColor("#784421"),
+            HexColor("#9933FF"),
+            HexColor("#000000"),
+        },
         worldReadyBlockIndex = 1,
         worldPosX = 400,
         worldPosY = 90,
@@ -85,6 +94,14 @@ function GameFrame:createPhysicsWorld()
     self.objects.downBorder.fixture = love.physics.newFixture(self.objects.downBorder.body, self.objects.downBorder.shape);
     self.objects.downBorder.fixture:setFriction(0.3);
 
+    for i = 1, self.worldXNum - 1 do
+        local currBorder = {};
+        currBorder.body = love.physics.newBody(self.world, 0, 0, "static");
+        currBorder.shape = love.physics.newEdgeShape(leftUpX + i * self.worldBlockSize, leftUpY + self.worldBlockSize, 
+            leftUpX + i * self.worldBlockSize, leftDownY);
+        currBorder.fixture = love.physics.newFixture(currBorder.body, currBorder.shape);
+        table.insert(self.objects, currBorder);
+    end
 end
 
 function GameFrame:destoryPhysicsWorld()
@@ -106,13 +123,15 @@ function GameFrame:drawPhysicsWorld()
     end
 
     -- 画格子线
-    love.graphics.setColor(HexColor("#C0C0C0"));
-    for i = 1, 9 do
-        love.graphics.line(self.worldPosX + i * self.worldBlockSize, self.worldPosY + self.worldBlockSize, self.worldPosX + i * self.worldBlockSize, self.worldPosY + self.worldHeight);
-    end
-    for i = 1, 15 do
-        love.graphics.line(self.worldPosX, self.worldPosY + i * self.worldBlockSize, self.worldPosX + self.worldWidth, self.worldPosY + i * self.worldBlockSize);
-    end
+    -- -- 竖向格子线
+    -- love.graphics.setColor(HexColor("#C0C0C0"));
+    -- for i = 1, 9 do
+    --     love.graphics.line(self.worldPosX + i * self.worldBlockSize, self.worldPosY + self.worldBlockSize, self.worldPosX + i * self.worldBlockSize, self.worldPosY + self.worldHeight);
+    -- end
+    -- -- 横向格子线
+    -- for i = 1, 15 do
+    --     love.graphics.line(self.worldPosX, self.worldPosY + i * self.worldBlockSize, self.worldPosX + self.worldWidth, self.worldPosY + i * self.worldBlockSize);
+    -- end
 
     -- 画选择框
     love.graphics.setColor(HexColor("#FF0000"));
@@ -131,6 +150,12 @@ function GameFrame:drawPhysicsWorld()
     love.graphics.setColor(HexColor("#000000"));
     love.graphics.line(self.objects.downBorder.body:getWorldPoints(self.objects.downBorder.shape:getPoints()));
 
+    -- 画格栅
+    -- love.graphics.setColor(HexColor("#000000"));
+    -- for i = 1, self.worldXNum - 1 do
+    --     love.graphics.line(self.objects[i].body:getWorldPoints(self.objects[i].shape:getPoints()));
+    -- end
+
     -- 画物理方块
     for i = 1, #_G.gameFrame.worldBlocks do
         local currBlock = _G.gameFrame.worldBlocks[i];
@@ -142,10 +167,10 @@ end
 function GameFrame:generateBlock()
     local currBlock = {};
     currBlock.body = love.physics.newBody(self.world, 0, 0, "dynamic");
-    currBlock.shape = love.physics.newRectangleShape(self.worldPosX + (self.worldReadyBlockIndex - 0.5) * self.worldBlockSize, self.worldPosY + 0.5 * self.worldBlockSize, self.worldBlockSize, self.worldBlockSize);
+    currBlock.shape = love.physics.newRectangleShape(self.worldPosX + (self.worldReadyBlockIndex - 0.5) * self.worldBlockSize, self.worldPosY + 0.5 * self.worldBlockSize, self.worldBlockSize - 2, self.worldBlockSize);
     currBlock.fixture = love.physics.newFixture(currBlock.body, currBlock.shape, 1);
-    currBlock.fixture:setRestitution(0.5);
-    currBlock.fixture:setFriction(0.3);
-    currBlock.color = {math.random(), math.random(), math.random()};
+    currBlock.fixture:setRestitution(0.2);
+    currBlock.fixture:setFriction(0);
+    currBlock.color = self.worldBlockDefaultColor[math.random(1, #self.worldBlockDefaultColor)];
     table.insert(self.worldBlocks, currBlock);
 end
