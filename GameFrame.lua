@@ -17,9 +17,9 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
             HexColor("#FFCC00"),
             HexColor("#37C870"),
             HexColor("#0066FF"),
-            HexColor("#784421"),
-            HexColor("#9933FF"),
-            HexColor("#000000"),
+            --HexColor("#784421"),
+            --HexColor("#9933FF"),
+            --HexColor("#000000"),
         },
         worldReadyBlockIndex = 1,
         worldPosX = 400,
@@ -58,6 +58,9 @@ function GameFrame:createPhysicsWorld()
     self.world = love.physics.newWorld(0, 9.81 * 64, true);
     self.objects = {};
     self.worldBlocks = {};
+    for i = 1, self.worldXNum do
+        self.worldBlocks[i] = {};
+    end
     
     -- 设置一个矩形边界，所有物理模拟均限制在此矩形中
     -- 左上角坐标
@@ -102,6 +105,13 @@ function GameFrame:createPhysicsWorld()
         currBorder.fixture = love.physics.newFixture(currBorder.body, currBorder.shape);
         table.insert(self.objects, currBorder);
     end
+
+    for i = 1, self.worldYNum do
+        for j = 1, self.worldXNum do
+            self:generateBlock(j);
+        end
+    end
+
 end
 
 function GameFrame:destoryPhysicsWorld()
@@ -157,20 +167,46 @@ function GameFrame:drawPhysicsWorld()
     -- end
 
     -- 画物理方块
-    for i = 1, #_G.gameFrame.worldBlocks do
-        local currBlock = _G.gameFrame.worldBlocks[i];
-        love.graphics.setColor(currBlock.color);
-        love.graphics.polygon("fill", currBlock.body:getWorldPoints(currBlock.shape:getPoints()));
+    for i = 1, #self.worldBlocks do
+        for j = 1, #self.worldBlocks[i] do
+            local currBlock = self.worldBlocks[i][j];
+            love.graphics.setColor(currBlock.color);
+            love.graphics.polygon("fill", currBlock.body:getWorldPoints(currBlock.shape:getPoints()));
+        end
     end
 end
 
-function GameFrame:generateBlock()
+-- 向列号为columnIndex的列创建一个方块，列号从1开始数
+function GameFrame:generateBlock(columnIndex)
+    if #self.worldBlocks[columnIndex] >= self.worldYNum - 1 then
+        return;
+    end
     local currBlock = {};
     currBlock.body = love.physics.newBody(self.world, 0, 0, "dynamic");
-    currBlock.shape = love.physics.newRectangleShape(self.worldPosX + (self.worldReadyBlockIndex - 0.5) * self.worldBlockSize, self.worldPosY + 0.5 * self.worldBlockSize, self.worldBlockSize - 2, self.worldBlockSize);
+    currBlock.shape = love.physics.newRectangleShape(self.worldPosX + (columnIndex - 0.5) * self.worldBlockSize, self.worldPosY + 0.5 * self.worldBlockSize, self.worldBlockSize - 2, self.worldBlockSize);
     currBlock.fixture = love.physics.newFixture(currBlock.body, currBlock.shape, 1);
     currBlock.fixture:setRestitution(0.2);
     currBlock.fixture:setFriction(0);
     currBlock.color = self.worldBlockDefaultColor[math.random(1, #self.worldBlockDefaultColor)];
-    table.insert(self.worldBlocks, currBlock);
+    table.insert(self.worldBlocks[columnIndex], currBlock);
+end
+
+function GameFrame:handleMouseClick(x, y)
+    if x < self.worldPosX or x > self.worldPosX + self.worldWidth then
+        return;
+    end
+    if y < self.worldPosY or y > self.worldPosY + self.worldHeight then
+        return;
+    end
+    for i = 1, #self.worldBlocks do
+        for j = 1, #self.worldBlocks[i] do
+            local currBlock = self.worldBlocks[i][j];
+            if currBlock.fixture:testPoint(x, y) then
+                self.worldBlocks[i][j].body:destroy();
+                table.remove(self.worldBlocks[i], j);
+                break;
+            end
+        end
+        
+    end
 end

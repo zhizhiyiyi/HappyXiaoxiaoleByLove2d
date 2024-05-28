@@ -33,6 +33,10 @@ function Frame:handleMouseMove(x, y)
     self.buttonArray:updateActiveState(x, y);
 end
 
-function Frame:handleMousePress(x, y)
-    return self.buttonArray:handleMousePress(x, y);
+function Frame:handleButtonPress(x, y)
+    return self.buttonArray:handleButtonPress(x, y);
+end
+
+function Frame:handleMouseClick(x, y)
+    
 end

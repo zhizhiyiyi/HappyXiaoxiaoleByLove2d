@@ -30,10 +30,10 @@ function ButtonArray:updateActiveState(mouseX, mouseY)
     end
 end
 
-function ButtonArray:handleMousePress(mouseX, mouseY)
+function ButtonArray:handleButtonPress(mouseX, mouseY)
     for _, currButton in ipairs(self) do
         if currButton:checkMouseIn(mouseX, mouseY) then
-            currButton:handleMousePress(mouseX, mouseY);
+            currButton:handleButtonPress(mouseX, mouseY);
             return currButton;
         end
     end

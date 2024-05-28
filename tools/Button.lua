@@ -14,7 +14,7 @@ function Button:new(x, y, width, height, str, backColor, outlineColor, activeCol
         strColor = strColor,
         isActive = false,
         isEnable = true,
-        handleMousePress = function (...) end,
+        handleButtonPress = function (...) end,
     };
     setmetatable(ret, self);
     self.__index = self;

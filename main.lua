@@ -41,11 +41,11 @@ function createMenuFrame(frameBackColor)
     local buttonHeight = 50;
     local menuFrameNewGameButton = Button:new(windowWidth / 2 - buttonWidth / 2, windowHeight / 3, buttonWidth, buttonHeight, 
     "New Game", buttonBackColor, buttonOutlineColor, buttonActiveColor, buttonStrColor);
-    menuFrameNewGameButton.handleMousePress = menuFrameNewGameButtonPress;
+    menuFrameNewGameButton.handleButtonPress = menuFrameNewGameButtonPress;
     
     local menuFrameExitButton = Button:new(windowWidth / 2 - buttonWidth / 2, windowHeight / 3 + buttonHeight + 30, buttonWidth, buttonHeight, 
     "Exit", buttonBackColor, buttonOutlineColor, buttonActiveColor, buttonStrColor);
-    menuFrameExitButton.handleMousePress = menuFrameExitButtonPress;
+    menuFrameExitButton.handleButtonPress = menuFrameExitButtonPress;
 
     local menuFrameButtonArray = ButtonArray:new();
     menuFrameButtonArray:addButton(menuFrameNewGameButton);
@@ -65,11 +65,11 @@ function createGameFrame(frameBackColor)
     local buttonHeight = 50;
     local gameFrameNewGameButton = Button:new(30, windowHeight - 100, buttonWidth, buttonHeight, 
     "Back", buttonBackColor, buttonOutlineColor, buttonActiveColor, buttonStrColor);
-    gameFrameNewGameButton.handleMousePress = gameFrameBackButtonPress;
+    gameFrameNewGameButton.handleButtonPress = gameFrameBackButtonPress;
 
     local gameFrameRestartButton = Button:new(30, windowHeight - 100 - buttonHeight, buttonWidth, buttonHeight, 
     "Restart", buttonBackColor, buttonOutlineColor, buttonActiveColor, buttonStrColor);
-    gameFrameRestartButton.handleMousePress = gameFrameRestartButtonPress;
+    gameFrameRestartButton.handleButtonPress = gameFrameRestartButtonPress;
 
     gameFrameButtonArray:addButton(gameFrameRestartButton);
     gameFrameButtonArray:addButton(gameFrameNewGameButton);
@@ -110,7 +110,7 @@ function love.update(dt)
             _G.isKeyBoardActive = true;
         elseif love.keyboard.isDown("space") then
             if not _G.isKeyBoardActive then
-                _G.gameFrame:generateBlock();
+                _G.gameFrame:generateBlock(_G.gameFrame.worldReadyBlockIndex);
             end
             _G.isKeyBoardActive = true;
         else
@@ -125,13 +125,21 @@ function love.mousemoved(x, y)
 end
 
 function love.mousepressed(x, y)
-    local pressedButton = currFrame:handleMousePress(x, y);
+    local pressedButton = currFrame:handleButtonPress(x, y);
     if pressedButton then
-        pressedButton:handleMousePress();
+        pressedButton:handleButtonPress();
+    else
+        currFrame:handleMouseClick(x, y);
     end
 end
 
 function love.draw()
     currFrame:draw(objects);
+    
+    local currFont = love.graphics.newFont("tools/m6x11plus.ttf", 30);
+    love.graphics.setFont(currFont);
+    love.graphics.setColor(HexColor("#000000"));
+    love.graphics.print("FPS: "..tostring(love.timer.getFPS()), 10, 10);
+    
 end
 
