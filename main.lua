@@ -95,6 +95,7 @@ end
 function love.update(dt)
     if _G.gameFrame.world ~= nil then
         _G.gameFrame.world:update(dt)
+        _G.gameFrame:updateParticle(dt);
         
         if love.keyboard.isDown("right") then
             if not _G.isKeyBoardActive then
@@ -134,7 +135,7 @@ function love.mousepressed(x, y)
 end
 
 function love.draw()
-    currFrame:draw(objects);
+    currFrame:draw();
     
     local currFont = love.graphics.newFont("tools/m6x11plus.ttf", 30);
     love.graphics.setFont(currFont);

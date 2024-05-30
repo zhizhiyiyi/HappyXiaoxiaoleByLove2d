@@ -11,6 +11,8 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
         world = nil,
         object = nil,
         worldBlocks = nil,
+        worldMeter = 64,
+        worldGravity = 64 * 9.8,
         worldBlocksMaxNum = 100,
         worldBlockDefaultColor = {
             HexColor("#FF0000"),
@@ -29,6 +31,7 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
         worldYNum = 16,
         worldWidth = 40 * 10,
         worldHeight = 40 * 16,
+        particleArr = {},
     };
     setmetatable(ret, self);
     self.__index = self;
@@ -36,7 +39,68 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
     return ret;
 end
 
-function GameFrame:draw(objects)
+function GameFrame:generateParticle(color, x, y)
+    local canvas = love.graphics.newCanvas(5, 5);
+    love.graphics.setCanvas(canvas);
+    love.graphics.clear();
+    love.graphics.setColor(color);
+    love.graphics.rectangle("fill", 0, 0, 5, 5);
+    love.graphics.setCanvas();
+    local particleSystem = love.graphics.newParticleSystem(canvas, 100);
+    particleSystem:setParticleLifetime(0.5, 2);
+    particleSystem:setLinearAcceleration(0, self.worldGravity, 0, self.worldGravity);
+    particleSystem:setSpread(2 * math.pi);
+    particleSystem:setSpeed(50, 300);
+    local result = {
+        particleSystem = particleSystem,
+        x = x,
+        y = y,
+        hasEmitted = false,
+    };
+
+    table.insert(self.particleArr, result);
+end
+
+function GameFrame:emitParticle()
+    for i = 1, #self.particleArr do
+        local currParticleSystem = self.particleArr[i];
+        if not currParticleSystem.hasEmitted then
+            currParticleSystem.particleSystem:emit(100);
+            currParticleSystem.hasEmitted = true;
+        end
+    end
+end
+
+function GameFrame:updateParticle(dt)
+    self:deleteUsedParticle();
+    for i = 1, #self.particleArr do
+        local currParticleSystem = self.particleArr[i];
+        currParticleSystem.particleSystem:update(dt);
+    end
+end
+
+-- 删除发射过的粒子效果
+function GameFrame:deleteUsedParticle()
+    local i = 1;
+    while i <= #self.particleArr do
+        local currParticleSystem = self.particleArr[i];
+        if currParticleSystem.hasEmitted and currParticleSystem.particleSystem:getCount() == 0 then  
+            self.particleArr[i].particleSystem:release();
+            table.remove(self.particleArr, i);
+        else
+            i = i + 1;
+        end
+    end
+end
+
+function GameFrame:drawParticle()
+    for i = 1, #self.particleArr do
+        local currParticleSystem = self.particleArr[i];
+        love.graphics.draw(currParticleSystem.particleSystem, currParticleSystem.x, currParticleSystem.y);
+    end
+end
+
+function GameFrame:draw()
     if self.isEnable == false then
         return;
     end
@@ -47,15 +111,15 @@ function GameFrame:draw(objects)
     self.buttonArray:draw();
 
     self:drawPhysicsWorld();
-    
+    self:drawParticle();
 end
 
 function GameFrame:createPhysicsWorld()
     if self.world ~= nil or self.object ~= nil then
         return;
     end
-    love.physics.setMeter(64);
-    self.world = love.physics.newWorld(0, 9.81 * 64, true);
+    love.physics.setMeter(self.worldMeter);
+    self.world = love.physics.newWorld(0, self.worldGravity, true);
     self.objects = {};
     self.worldBlocks = {};
     for i = 1, self.worldXNum do
@@ -108,7 +172,7 @@ function GameFrame:createPhysicsWorld()
 
     for i = 1, self.worldYNum do
         for j = 1, self.worldXNum do
-            self:generateBlock(j);
+            self:generateBlock(j, self.worldPosY + (0.5 + self.worldYNum - i) * self.worldBlockSize);
         end
     end
 
@@ -177,13 +241,13 @@ function GameFrame:drawPhysicsWorld()
 end
 
 -- 向列号为columnIndex的列创建一个方块，列号从1开始数
-function GameFrame:generateBlock(columnIndex)
+function GameFrame:generateBlock(columnIndex, initPosY)
     if #self.worldBlocks[columnIndex] >= self.worldYNum - 1 then
         return;
     end
     local currBlock = {};
     currBlock.body = love.physics.newBody(self.world, 0, 0, "dynamic");
-    currBlock.shape = love.physics.newRectangleShape(self.worldPosX + (columnIndex - 0.5) * self.worldBlockSize, self.worldPosY + 0.5 * self.worldBlockSize, self.worldBlockSize - 2, self.worldBlockSize);
+    currBlock.shape = love.physics.newRectangleShape(self.worldPosX + (columnIndex - 0.5) * self.worldBlockSize, initPosY, self.worldBlockSize - 2, self.worldBlockSize);
     currBlock.fixture = love.physics.newFixture(currBlock.body, currBlock.shape, 1);
     currBlock.fixture:setRestitution(0.2);
     currBlock.fixture:setFriction(0);
@@ -198,15 +262,22 @@ function GameFrame:handleMouseClick(x, y)
     if y < self.worldPosY or y > self.worldPosY + self.worldHeight then
         return;
     end
+
+    if self.world == nil then
+        return;
+    end
+
     for i = 1, #self.worldBlocks do
         for j = 1, #self.worldBlocks[i] do
             local currBlock = self.worldBlocks[i][j];
             if currBlock.fixture:testPoint(x, y) then
+                self:generateParticle(currBlock.color, x, y);
+                self:emitParticle();
                 self.worldBlocks[i][j].body:destroy();
                 table.remove(self.worldBlocks[i], j);
+                self:generateBlock(i, self.worldPosY + 0.5 * self.worldBlockSize);
                 break;
             end
         end
-        
     end
 end
