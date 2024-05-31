@@ -25,12 +25,12 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
         },
         worldReadyBlockIndex = 1,
         worldPosX = 400,
-        worldPosY = 90,
+        worldPosY = 50,
         worldBlockSize = 40,
         worldXNum = 10,
         worldYNum = 16,
         worldWidth = 40 * 10,
-        worldHeight = 40 * 16,
+        worldHeight = 40 * 17,
         particleArr = {},
     };
     setmetatable(ret, self);
@@ -40,19 +40,31 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
 end
 
 function GameFrame:generateParticle(color, x, y)
-    local canvas = love.graphics.newCanvas(5, 5);
-    love.graphics.setCanvas(canvas);
-    love.graphics.clear();
-    love.graphics.setColor(color);
-    love.graphics.rectangle("fill", 0, 0, 5, 5);
-    love.graphics.setCanvas();
-    local particleSystem = love.graphics.newParticleSystem(canvas, 100);
+
+    -- local canvas = love.graphics.newCanvas(5, 5);
+    -- love.graphics.setCanvas(canvas);
+    -- love.graphics.clear();
+    -- love.graphics.setColor(color);
+    -- love.graphics.rectangle("fill", 0, 0, 5, 5);
+    -- love.graphics.setCanvas();
+    -- local particleSystem = love.graphics.newParticleSystem(canvas, 100);
+    
+    local imageData = love.image.newImageData(5, 5);
+    imageData:mapPixel(
+        function(...)
+            return color[1], color[2], color[3], 1;
+        end
+    );
+    local image = love.graphics.newImage(imageData);
+
+    local particleSystem = love.graphics.newParticleSystem(image, 100);
     particleSystem:setParticleLifetime(0.5, 2);
     particleSystem:setLinearAcceleration(0, self.worldGravity, 0, self.worldGravity);
     particleSystem:setSpread(2 * math.pi);
     particleSystem:setSpeed(50, 300);
     local result = {
         particleSystem = particleSystem,
+        color = color,
         x = x,
         y = y,
         hasEmitted = false,
@@ -96,6 +108,7 @@ end
 function GameFrame:drawParticle()
     for i = 1, #self.particleArr do
         local currParticleSystem = self.particleArr[i];
+        love.graphics.setColor(currParticleSystem.color);
         love.graphics.draw(currParticleSystem.particleSystem, currParticleSystem.x, currParticleSystem.y);
     end
 end
