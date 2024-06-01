@@ -111,7 +111,7 @@ function love.update(dt)
             _G.isKeyBoardActive = true;
         elseif love.keyboard.isDown("space") then
             if not _G.isKeyBoardActive then
-                _G.gameFrame:generateBlock(_G.gameFrame.worldReadyBlockIndex);
+                --_G.gameFrame:generateBlock(_G.gameFrame.worldReadyBlockIndex);
             end
             _G.isKeyBoardActive = true;
         else

@@ -19,9 +19,9 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
             HexColor("#FFCC00"),
             HexColor("#37C870"),
             HexColor("#0066FF"),
-            --HexColor("#784421"),
-            --HexColor("#9933FF"),
-            --HexColor("#000000"),
+            HexColor("#784421"),
+            HexColor("#9933FF"),
+            HexColor("#000000"),
         },
         worldReadyBlockIndex = 1,
         worldPosX = 400,
@@ -40,15 +40,6 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
 end
 
 function GameFrame:generateParticle(color, x, y)
-
-    -- local canvas = love.graphics.newCanvas(5, 5);
-    -- love.graphics.setCanvas(canvas);
-    -- love.graphics.clear();
-    -- love.graphics.setColor(color);
-    -- love.graphics.rectangle("fill", 0, 0, 5, 5);
-    -- love.graphics.setCanvas();
-    -- local particleSystem = love.graphics.newParticleSystem(canvas, 100);
-    
     local imageData = love.image.newImageData(5, 5);
     imageData:mapPixel(
         function(...)
@@ -61,7 +52,7 @@ function GameFrame:generateParticle(color, x, y)
     particleSystem:setParticleLifetime(0.5, 2);
     particleSystem:setLinearAcceleration(0, self.worldGravity, 0, self.worldGravity);
     particleSystem:setSpread(2 * math.pi);
-    particleSystem:setSpeed(50, 300);
+    particleSystem:setSpeed(100, 500);
     local result = {
         particleSystem = particleSystem,
         color = color,
@@ -284,13 +275,129 @@ function GameFrame:handleMouseClick(x, y)
         for j = 1, #self.worldBlocks[i] do
             local currBlock = self.worldBlocks[i][j];
             if currBlock.fixture:testPoint(x, y) then
-                self:generateParticle(currBlock.color, x, y);
-                self:emitParticle();
-                self.worldBlocks[i][j].body:destroy();
-                table.remove(self.worldBlocks[i], j);
-                self:generateBlock(i, self.worldPosY + 0.5 * self.worldBlockSize);
+                local delPos = self:getSameColorBlocksByBFS(i, j);
+
+                table.sort(delPos, function(a, b)
+                    return a[2] > b[2];
+                end);
+
+                for k = 1, #delPos do
+                    local currDelXIndex = delPos[k][1];
+                    local currDelYIndex = delPos[k][2];
+                    local particleX = self.worldPosX + (currDelXIndex - 0.5) * self.worldBlockSize;
+                    local particleY = self.worldPosY + self.worldHeight - (currDelYIndex - 0.5) * self.worldBlockSize;
+                    self:generateParticle(currBlock.color, particleX, particleY);
+
+                    -- 给上方方块施加爆炸反冲力
+                    if #self.worldBlocks[currDelXIndex] >= currDelYIndex + 1 then
+                        self.worldBlocks[currDelXIndex][currDelYIndex + 1].body:applyForce(0, -10000);
+                    end
+
+                    self.worldBlocks[currDelXIndex][currDelYIndex].body:destroy();
+                    table.remove(self.worldBlocks[currDelXIndex], currDelYIndex);
+                    self:emitParticle();
+                end
+
+                --self:generateBlock(i, self.worldPosY + 0.5 * self.worldBlockSize);
                 break;
             end
         end
     end
 end
+
+function GameFrame:checkWorldBlockIndexInWorld(xIndex, yIndex)
+    if xIndex < 1 or xIndex > self.worldXNum or yIndex < 1 or yIndex > self.worldYNum - 1 then
+        return false;
+    end
+    return true;
+end
+
+function GameFrame:checkWorldBlockExisted(xIndex, yIndex)
+    if xIndex < 1 or xIndex > self.worldXNum or yIndex < 1 or yIndex > #self.worldBlocks[xIndex] then
+        return false;
+    end
+    return true;
+end
+
+function GameFrame:getSameColorBlocksByBFS(xIndex, yIndex)
+    local ret = {};
+    if not self:checkWorldBlockExisted(xIndex, yIndex) then
+        return ret;
+    end
+    local targetColor = self.worldBlocks[xIndex][yIndex].color;
+    local workList = {};
+    local footPrint = {};
+    for i = 1, self.worldXNum do
+        footPrint[i] = {};
+        for j = 1, self.worldYNum do
+            footPrint[i][j] = false;
+        end
+    end
+    table.insert(ret, {xIndex, yIndex});
+    table.insert(workList, {xIndex, yIndex});
+    footPrint[xIndex][yIndex] = true;
+
+    while #workList ~= 0 do
+        -- 注意：worldBlocks这个二维数组，堆积在上面的方块，它在二维数组中的下标更大
+        -- 上
+        local currXIndex = workList[1][1];
+        local currYIndex = workList[1][2] + 1;
+        if self:checkWorldBlockExisted(currXIndex, currYIndex) and footPrint[currXIndex][currYIndex] == false then
+            local currColor = self.worldBlocks[currXIndex][currYIndex].color;
+            if isSameColor(currColor, targetColor) then
+                table.insert(ret, {currXIndex, currYIndex});
+                table.insert(workList, {currXIndex, currYIndex});
+                footPrint[currXIndex][currYIndex] = true;
+            end
+        end
+
+        -- 下
+        currXIndex = workList[1][1];
+        currYIndex = workList[1][2] - 1;
+        if self:checkWorldBlockExisted(currXIndex, currYIndex) and footPrint[currXIndex][currYIndex] == false then
+            local currColor = self.worldBlocks[currXIndex][currYIndex].color;
+            if isSameColor(currColor, targetColor) then
+                table.insert(ret, {currXIndex, currYIndex});
+                table.insert(workList, {currXIndex, currYIndex});
+                footPrint[currXIndex][currYIndex] = true;
+            end
+        end
+
+        -- 左
+        currXIndex = workList[1][1] - 1;
+        currYIndex = workList[1][2];
+        if self:checkWorldBlockExisted(currXIndex, currYIndex) and footPrint[currXIndex][currYIndex] == false then
+            local currColor = self.worldBlocks[currXIndex][currYIndex].color;
+            if isSameColor(currColor, targetColor) then
+                table.insert(ret, {currXIndex, currYIndex});
+                table.insert(workList, {currXIndex, currYIndex});
+                footPrint[currXIndex][currYIndex] = true;
+            end
+        end
+
+        -- 右
+        currXIndex = workList[1][1] + 1;
+        currYIndex = workList[1][2];
+        if self:checkWorldBlockExisted(currXIndex, currYIndex) and footPrint[currXIndex][currYIndex] == false then
+            local currColor = self.worldBlocks[currXIndex][currYIndex].color;
+            if isSameColor(currColor, targetColor) then
+                table.insert(ret, {currXIndex, currYIndex});
+                table.insert(workList, {currXIndex, currYIndex});
+                footPrint[currXIndex][currYIndex] = true;
+            end
+        end
+
+        table.remove(workList, 1);
+    end
+    return ret;
+end
+
+function isSameColor(color1, color2)
+    for i = 1, 3 do
+        if color1[i] ~= color2[i] then
+            return false;
+        end
+    end
+    return true;
+end
+
