@@ -1,5 +1,6 @@
 require("tools/Frame");
 require("tools/HexColor");
+require("tools/FloatScore");
 
 GameFrame = Frame:new();
 
@@ -20,18 +21,23 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
             HexColor("#37C870"),
             HexColor("#0066FF"),
             HexColor("#784421"),
-            HexColor("#9933FF"),
-            HexColor("#000000"),
+            --HexColor("#9933FF"),
+            --HexColor("#000000"),
         },
         worldReadyBlockIndex = 1,
         worldPosX = 400,
         worldPosY = 50,
         worldBlockSize = 40,
         worldXNum = 10,
-        worldYNum = 16,
+        worldYNum = 15,
         worldWidth = 40 * 10,
         worldHeight = 40 * 17,
         particleArr = {},
+        floatScore = nil,
+        scorePad = {
+            scorePadValue = 0,
+            scorePadColor = HexColor("#000000"),
+        },
     };
     setmetatable(ret, self);
     self.__index = self;
@@ -39,89 +45,57 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
     return ret;
 end
 
-function GameFrame:generateParticle(color, x, y)
-    local imageData = love.image.newImageData(5, 5);
-    imageData:mapPixel(
-        function(...)
-            return color[1], color[2], color[3], 1;
-        end
-    );
-    local image = love.graphics.newImage(imageData);
-
-    local particleSystem = love.graphics.newParticleSystem(image, 100);
-    particleSystem:setParticleLifetime(0.5, 2);
-    particleSystem:setLinearAcceleration(0, self.worldGravity, 0, self.worldGravity);
-    particleSystem:setSpread(2 * math.pi);
-    particleSystem:setSpeed(100, 500);
-    local result = {
-        particleSystem = particleSystem,
-        color = color,
-        x = x,
-        y = y,
-        hasEmitted = false,
-    };
-
-    table.insert(self.particleArr, result);
-end
-
-function GameFrame:emitParticle()
-    for i = 1, #self.particleArr do
-        local currParticleSystem = self.particleArr[i];
-        if not currParticleSystem.hasEmitted then
-            currParticleSystem.particleSystem:emit(100);
-            currParticleSystem.hasEmitted = true;
-        end
-    end
-end
-
-function GameFrame:updateParticle(dt)
-    self:deleteUsedParticle();
-    for i = 1, #self.particleArr do
-        local currParticleSystem = self.particleArr[i];
-        currParticleSystem.particleSystem:update(dt);
-    end
-end
-
--- 删除发射过的粒子效果
-function GameFrame:deleteUsedParticle()
-    local i = 1;
-    while i <= #self.particleArr do
-        local currParticleSystem = self.particleArr[i];
-        if currParticleSystem.hasEmitted and currParticleSystem.particleSystem:getCount() == 0 then  
-            self.particleArr[i].particleSystem:release();
-            table.remove(self.particleArr, i);
-        else
-            i = i + 1;
-        end
-    end
-end
-
-function GameFrame:drawParticle()
-    for i = 1, #self.particleArr do
-        local currParticleSystem = self.particleArr[i];
-        love.graphics.setColor(currParticleSystem.color);
-        love.graphics.draw(currParticleSystem.particleSystem, currParticleSystem.x, currParticleSystem.y);
-    end
-end
-
 function GameFrame:draw()
     if self.isEnable == false then
         return;
     end
     love.graphics.clear(self.backColor);
+
     love.graphics.setColor(HexColor("#000000"));
     local _, windowHeight = love.graphics.getDimensions();
     love.graphics.line(250, 0, 250, windowHeight);
+
     self.buttonArray:draw();
 
     self:drawPhysicsWorld();
     self:drawParticle();
+    self:drawFloatScore();
+    self:drawScorePad();
+end
+
+function GameFrame:drawFloatScore()
+    if self.floatScore == nil then
+        return;
+    end
+    self.floatScore:draw();
+end
+
+function GameFrame:drawScorePad()
+    love.graphics.setColor(self.scorePad.scorePadColor);
+
+    local currFont = love.graphics.newFont("tools/m6x11plus.ttf", 30);
+    love.graphics.setFont(currFont);
+    love.graphics.print("Score: ", 10, 60);
+
+    currFont = love.graphics.newFont("tools/m6x11plus.ttf", 150);
+    love.graphics.setFont(currFont);
+    love.graphics.print(tostring(self.scorePad.scorePadValue), 10, 90);
+end
+
+function GameFrame:resetScorePad()
+    self.scorePad.scorePadValue = 0;
+    self.scorePad.scorePadColor = HexColor("#000000");
 end
 
 function GameFrame:createPhysicsWorld()
     if self.world ~= nil or self.object ~= nil then
         return;
     end
+
+    self.floatScore = nil;
+    self.floatScore = FloatScore:new(0, 0, 0, 50, 150, 2, HexColor("#000000"));
+    self:resetScorePad();
+
     love.physics.setMeter(self.worldMeter);
     self.world = love.physics.newWorld(0, self.worldGravity, true);
     self.objects = {};
@@ -174,9 +148,12 @@ function GameFrame:createPhysicsWorld()
         table.insert(self.objects, currBorder);
     end
 
+    -- 排列太密的话，有可能造成方块碰撞失效并发生侵入
+    -- 需要提前预留出一些间隔
+    local averageYGap = 1;
     for i = 1, self.worldYNum do
         for j = 1, self.worldXNum do
-            self:generateBlock(j, self.worldPosY + (0.5 + self.worldYNum - i) * self.worldBlockSize);
+            self:generateBlock(j, self.worldPosY + (0.5 + self.worldYNum - i) * self.worldBlockSize - (i - 1) * averageYGap);
         end
     end
 
@@ -212,8 +189,8 @@ function GameFrame:drawPhysicsWorld()
     -- end
 
     -- 画选择框
-    love.graphics.setColor(HexColor("#FF0000"));
-    love.graphics.rectangle("line", self.worldPosX + (self.worldReadyBlockIndex - 1) * self.worldBlockSize, self.worldPosY, self.worldBlockSize, self.worldBlockSize);
+    -- love.graphics.setColor(HexColor("#FF0000"));
+    -- love.graphics.rectangle("line", self.worldPosX + (self.worldReadyBlockIndex - 1) * self.worldBlockSize, self.worldPosY, self.worldBlockSize, self.worldBlockSize);
 
     -- 画世界边界
     love.graphics.setColor(HexColor("#000000"));
@@ -246,7 +223,7 @@ end
 
 -- 向列号为columnIndex的列创建一个方块，列号从1开始数
 function GameFrame:generateBlock(columnIndex, initPosY)
-    if #self.worldBlocks[columnIndex] >= self.worldYNum - 1 then
+    if #self.worldBlocks[columnIndex] >= self.worldYNum then
         return;
     end
     local currBlock = {};
@@ -277,6 +254,19 @@ function GameFrame:handleMouseClick(x, y)
             if currBlock.fixture:testPoint(x, y) then
                 local delPos = self:getSameColorBlocksByBFS(i, j);
 
+                local score = (#delPos) ^ 2 - 1;
+                self.floatScore:setNumber(score);
+                self.floatScore:setFontColor(currBlock.color);
+                self.floatScore:setPos(x, y);
+                self.floatScore:reset();
+
+                if #delPos == 1 then
+                    break;
+                end
+
+                --self.scorePad.scorePadColor = currBlock.color;
+                self.scorePad.scorePadValue = self.scorePad.scorePadValue + score;
+
                 table.sort(delPos, function(a, b)
                     return a[2] > b[2];
                 end);
@@ -306,7 +296,7 @@ function GameFrame:handleMouseClick(x, y)
 end
 
 function GameFrame:checkWorldBlockIndexInWorld(xIndex, yIndex)
-    if xIndex < 1 or xIndex > self.worldXNum or yIndex < 1 or yIndex > self.worldYNum - 1 then
+    if xIndex < 1 or xIndex > self.worldXNum or yIndex < 1 or yIndex > self.worldYNum then
         return false;
     end
     return true;
@@ -401,3 +391,67 @@ function isSameColor(color1, color2)
     return true;
 end
 
+function GameFrame:generateParticle(color, x, y)
+    local imageData = love.image.newImageData(5, 5);
+    imageData:mapPixel(
+        function(...)
+            return color[1], color[2], color[3], 1;
+        end
+    );
+    local image = love.graphics.newImage(imageData);
+
+    local particleSystem = love.graphics.newParticleSystem(image, 100);
+    particleSystem:setParticleLifetime(0.5, 2);
+    particleSystem:setLinearAcceleration(0, self.worldGravity, 0, self.worldGravity);
+    particleSystem:setSpread(2 * math.pi);
+    particleSystem:setSpeed(100, 500);
+    local result = {
+        particleSystem = particleSystem,
+        color = color,
+        x = x,
+        y = y,
+        hasEmitted = false,
+    };
+
+    table.insert(self.particleArr, result);
+end
+
+function GameFrame:emitParticle()
+    for i = 1, #self.particleArr do
+        local currParticleSystem = self.particleArr[i];
+        if not currParticleSystem.hasEmitted then
+            currParticleSystem.particleSystem:emit(100);
+            currParticleSystem.hasEmitted = true;
+        end
+    end
+end
+
+function GameFrame:updateParticle(dt)
+    self:deleteUsedParticle();
+    for i = 1, #self.particleArr do
+        local currParticleSystem = self.particleArr[i];
+        currParticleSystem.particleSystem:update(dt);
+    end
+end
+
+-- 删除发射过的粒子效果
+function GameFrame:deleteUsedParticle()
+    local i = 1;
+    while i <= #self.particleArr do
+        local currParticleSystem = self.particleArr[i];
+        if currParticleSystem.hasEmitted and currParticleSystem.particleSystem:getCount() == 0 then  
+            self.particleArr[i].particleSystem:release();
+            table.remove(self.particleArr, i);
+        else
+            i = i + 1;
+        end
+    end
+end
+
+function GameFrame:drawParticle()
+    for i = 1, #self.particleArr do
+        local currParticleSystem = self.particleArr[i];
+        love.graphics.setColor(currParticleSystem.color);
+        love.graphics.draw(currParticleSystem.particleSystem, currParticleSystem.x, currParticleSystem.y);
+    end
+end

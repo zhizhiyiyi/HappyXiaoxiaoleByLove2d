@@ -7,6 +7,7 @@ require("tools/HexColor");
 require("tools/Button");
 require("tools/ButtonArray");
 require("tools/Frame");
+require("tools/FloatScore");
 require("MenuFrame");
 require("GameFrame");
 
@@ -22,6 +23,7 @@ end
 
 function menuFrameNewGameButtonPress()
     _G.currFrame = _G.gameFrame;
+    gameFrameRestartButtonPress();
 end
 
 function gameFrameBackButtonPress()
@@ -96,7 +98,7 @@ function love.update(dt)
     if _G.gameFrame.world ~= nil then
         _G.gameFrame.world:update(dt)
         _G.gameFrame:updateParticle(dt);
-        
+        _G.gameFrame.floatScore:update();
         if love.keyboard.isDown("right") then
             if not _G.isKeyBoardActive then
                 local currIndex = _G.gameFrame.worldReadyBlockIndex;
@@ -111,14 +113,13 @@ function love.update(dt)
             _G.isKeyBoardActive = true;
         elseif love.keyboard.isDown("space") then
             if not _G.isKeyBoardActive then
-                --_G.gameFrame:generateBlock(_G.gameFrame.worldReadyBlockIndex);
+                -- may be do something in the future
             end
             _G.isKeyBoardActive = true;
         else
             _G.isKeyBoardActive = false;
         end
     end
-    
 end
 
 function love.mousemoved(x, y)
@@ -128,7 +129,7 @@ end
 function love.mousepressed(x, y)
     local pressedButton = currFrame:handleButtonPress(x, y);
     if pressedButton then
-        pressedButton:handleButtonPress();
+        -- may be do something in the future
     else
         currFrame:handleMouseClick(x, y);
     end
@@ -141,6 +142,6 @@ function love.draw()
     love.graphics.setFont(currFont);
     love.graphics.setColor(HexColor("#000000"));
     love.graphics.print("FPS: "..tostring(love.timer.getFPS()), 10, 10);
-    
+
 end
 
