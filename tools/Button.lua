@@ -14,7 +14,10 @@ function Button:new(x, y, width, height, str, backColor, outlineColor, activeCol
         strColor = strColor,
         isActive = false,
         isEnable = true,
-        handleButtonPress = function (...) end,
+        handleButtonPress = function (...)
+            sound = love.audio.newSource("sound/button.ogg", "static");
+            sound:play();
+        end,
     };
     setmetatable(ret, self);
     self.__index = self;

@@ -14,7 +14,6 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
         worldBlocks = nil,
         worldMeter = 64,
         worldGravity = 64 * 9.8,
-        worldBlocksMaxNum = 100,
         worldBlockDefaultColor = {
             HexColor("#FF0000"),
             HexColor("#FFCC00"),
@@ -24,7 +23,6 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
             --HexColor("#9933FF"),
             --HexColor("#000000"),
         },
-        worldReadyBlockIndex = 1,
         worldPosX = 400,
         worldPosY = 50,
         worldBlockSize = 40,
@@ -37,6 +35,20 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
         scorePad = {
             scorePadValue = 0,
             scorePadColor = HexColor("#000000"),
+        },
+        sound = {
+            newGame = love.audio.newSource("sound/start.ogg", "static"),
+            restart = love.audio.newSource("sound/restart.ogg", "static"),
+            back = love.audio.newSource("sound/back.ogg", "static"),
+            notBreak = love.audio.newSource("sound/notBreak.ogg", "static"),
+            blockBreak = {
+                love.audio.newSource("sound/blockBreak/glass1.ogg", "static"),
+                love.audio.newSource("sound/blockBreak/glass2.ogg", "static"),
+                love.audio.newSource("sound/blockBreak/glass3.ogg", "static"),
+                love.audio.newSource("sound/blockBreak/glass4.ogg", "static"),
+                love.audio.newSource("sound/blockBreak/glass5.ogg", "static"),
+                love.audio.newSource("sound/blockBreak/glass6.ogg", "static"),
+            }
         },
     };
     setmetatable(ret, self);
@@ -150,10 +162,10 @@ function GameFrame:createPhysicsWorld()
 
     -- 排列太密的话，有可能造成方块碰撞失效并发生侵入
     -- 需要提前预留出一些间隔
-    local averageYGap = 1;
+    local averageYGap = 2;
     for i = 1, self.worldYNum do
         for j = 1, self.worldXNum do
-            self:generateBlock(j, self.worldPosY + (0.5 + self.worldYNum - i) * self.worldBlockSize - (i - 1) * averageYGap);
+            self:generateBlock(j, self.worldPosY + self.worldHeight - i * self.worldBlockSize - (i - 1) * averageYGap);
         end
     end
 
@@ -187,10 +199,6 @@ function GameFrame:drawPhysicsWorld()
     -- for i = 1, 15 do
     --     love.graphics.line(self.worldPosX, self.worldPosY + i * self.worldBlockSize, self.worldPosX + self.worldWidth, self.worldPosY + i * self.worldBlockSize);
     -- end
-
-    -- 画选择框
-    -- love.graphics.setColor(HexColor("#FF0000"));
-    -- love.graphics.rectangle("line", self.worldPosX + (self.worldReadyBlockIndex - 1) * self.worldBlockSize, self.worldPosY, self.worldBlockSize, self.worldBlockSize);
 
     -- 画世界边界
     love.graphics.setColor(HexColor("#000000"));
@@ -261,6 +269,7 @@ function GameFrame:handleMouseClick(x, y)
                 self.floatScore:reset();
 
                 if #delPos == 1 then
+                    love.audio.play(self.sound.notBreak);
                     break;
                 end
 
@@ -287,6 +296,9 @@ function GameFrame:handleMouseClick(x, y)
                     table.remove(self.worldBlocks[currDelXIndex], currDelYIndex);
                     self:emitParticle();
                 end
+
+                local soundIndex = math.random(1, #self.sound.blockBreak);
+                love.audio.play(self.sound.blockBreak[soundIndex]);
 
                 --self:generateBlock(i, self.worldPosY + 0.5 * self.worldBlockSize);
                 break;

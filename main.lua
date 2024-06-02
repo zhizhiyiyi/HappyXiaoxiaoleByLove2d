@@ -22,15 +22,21 @@ function menuFrameExitButtonPress()
 end
 
 function menuFrameNewGameButtonPress()
+    love.audio.play(_G.gameFrame.sound.newGame);
     _G.currFrame = _G.gameFrame;
-    gameFrameRestartButtonPress();
+    if _G.gameFrame.world ~= nil then
+        _G.gameFrame:destoryPhysicsWorld();
+    end
+    _G.gameFrame:createPhysicsWorld();
 end
 
 function gameFrameBackButtonPress()
+    love.audio.play(_G.gameFrame.sound.back);
     _G.currFrame = _G.menuFrame;
 end
 
 function gameFrameRestartButtonPress()
+    love.audio.play(_G.gameFrame.sound.restart);
     if _G.gameFrame.world ~= nil then
         _G.gameFrame:destoryPhysicsWorld();
     end
@@ -100,21 +106,6 @@ function love.update(dt)
         _G.gameFrame:updateParticle(dt);
         _G.gameFrame.floatScore:update();
         if love.keyboard.isDown("right") then
-            if not _G.isKeyBoardActive then
-                local currIndex = _G.gameFrame.worldReadyBlockIndex;
-                _G.gameFrame.worldReadyBlockIndex = math.min(currIndex + 1, _G.gameFrame.worldXNum);
-            end
-            _G.isKeyBoardActive = true;
-        elseif love.keyboard.isDown("left") then
-            if not _G.isKeyBoardActive then
-                local currIndex = _G.gameFrame.worldReadyBlockIndex;
-                _G.gameFrame.worldReadyBlockIndex = math.max(currIndex - 1, 1);
-            end
-            _G.isKeyBoardActive = true;
-        elseif love.keyboard.isDown("space") then
-            if not _G.isKeyBoardActive then
-                -- may be do something in the future
-            end
             _G.isKeyBoardActive = true;
         else
             _G.isKeyBoardActive = false;
