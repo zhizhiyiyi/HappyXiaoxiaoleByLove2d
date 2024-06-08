@@ -1,6 +1,7 @@
 require("tools/Frame");
 require("tools/HexColor");
 require("tools/FloatScore");
+require("tools/ParticleArray");
 
 GameFrame = Frame:new();
 
@@ -30,7 +31,7 @@ function GameFrame:new(name, backColor, buttonArray, isEnable)
         worldYNum = 15,
         worldWidth = 40 * 10,
         worldHeight = 40 * 17,
-        particleArr = {},
+        particleArr = ParticleArray:new();
         floatScore = nil,
         scorePad = {
             scorePadValue = 0,
@@ -404,66 +405,18 @@ function isSameColor(color1, color2)
 end
 
 function GameFrame:generateParticle(color, x, y)
-    local imageData = love.image.newImageData(5, 5);
-    imageData:mapPixel(
-        function(...)
-            return color[1], color[2], color[3], 1;
-        end
-    );
-    local image = love.graphics.newImage(imageData);
-
-    local particleSystem = love.graphics.newParticleSystem(image, 100);
-    particleSystem:setParticleLifetime(0.5, 2);
-    particleSystem:setLinearAcceleration(0, self.worldGravity, 0, self.worldGravity);
-    particleSystem:setSpread(2 * math.pi);
-    particleSystem:setSpeed(100, 500);
-    local result = {
-        particleSystem = particleSystem,
-        color = color,
-        x = x,
-        y = y,
-        hasEmitted = false,
-    };
-
-    table.insert(self.particleArr, result);
+    local newElem = self.particleArr:generateParticle(x, y, 5, color, 100, self.worldGravity);
+    self.particleArr:pushBack(newElem);
 end
 
 function GameFrame:emitParticle()
-    for i = 1, #self.particleArr do
-        local currParticleSystem = self.particleArr[i];
-        if not currParticleSystem.hasEmitted then
-            currParticleSystem.particleSystem:emit(100);
-            currParticleSystem.hasEmitted = true;
-        end
-    end
+    self.particleArr:emitParticle();
 end
 
 function GameFrame:updateParticle(dt)
-    self:deleteUsedParticle();
-    for i = 1, #self.particleArr do
-        local currParticleSystem = self.particleArr[i];
-        currParticleSystem.particleSystem:update(dt);
-    end
-end
-
--- 删除发射过的粒子效果
-function GameFrame:deleteUsedParticle()
-    local i = 1;
-    while i <= #self.particleArr do
-        local currParticleSystem = self.particleArr[i];
-        if currParticleSystem.hasEmitted and currParticleSystem.particleSystem:getCount() == 0 then  
-            self.particleArr[i].particleSystem:release();
-            table.remove(self.particleArr, i);
-        else
-            i = i + 1;
-        end
-    end
+    self.particleArr:updateParticle(dt);
 end
 
 function GameFrame:drawParticle()
-    for i = 1, #self.particleArr do
-        local currParticleSystem = self.particleArr[i];
-        love.graphics.setColor(currParticleSystem.color);
-        love.graphics.draw(currParticleSystem.particleSystem, currParticleSystem.x, currParticleSystem.y);
-    end
+    self.particleArr:drawParticle();
 end

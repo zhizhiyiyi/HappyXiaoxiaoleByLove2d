@@ -11,3 +11,7 @@ end
 function Array:pushBack(elem)
     table.insert(self, elem);
 end
+
+function Array:erase(index)
+    table.remove(self, index);
+end
